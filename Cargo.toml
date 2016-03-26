@@ -2,5 +2,8 @@
 name = "scape"
 version = "1.0.0"
 authors = ["Gul Banana <castiglione@mac.com>"]
+build = "build.rs"
 
 [dependencies]
+sdl2 = "0.16"
+
