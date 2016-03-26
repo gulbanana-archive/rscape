@@ -1,0 +1,6 @@
+[package]
+name = "scape"
+version = "1.0.0"
+authors = ["Gul Banana <castiglione@mac.com>"]
+
+[dependencies]
