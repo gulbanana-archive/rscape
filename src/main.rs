@@ -1,21 +1,28 @@
 extern crate sdl2;
+extern crate sdl2_ttf;
+mod errors;
+
 use std::thread;
 use std::time::Duration;
+use std::error::Error;
+
 use sdl2::messagebox;
-use sdl2::messagebox::MessageBoxFlag;
 use sdl2::event::Event;
-use sdl2::video::Window;
+
+use errors::ScapeError;
 
 fn main() {
     if let Err(e) = _main() {
-        let _ = messagebox::show_simple_message_box(messagebox::MESSAGEBOX_ERROR, "Error", &e, Option::None); 
+        let _ = messagebox::show_simple_message_box(messagebox::MESSAGEBOX_ERROR, "Error", e.description(), Option::None); 
     }
 }
 
-fn _main() -> Result<(), String> {
+fn _main() -> Result<(), ScapeError> {
     let sdl_ctx = try!(sdl2::init());
     let video_ctx = try!(sdl_ctx.video());
-    let mut window = try!(video_ctx.window("Scape", 1280, 720).position_centered().opengl().build().map_err(|e| e.to_string()));
+    let ttf_ctx = try!(sdl2_ttf::init().map_err(|e| e.to_string())); //because the actual error type is private
+    
+    let mut window = try!(video_ctx.window("Scape", 1280, 720).position_centered().opengl().build());
     let mut events = try!(sdl_ctx.event_pump());
     
     window.show();
@@ -29,8 +36,8 @@ fn _main() -> Result<(), String> {
             };
         }
         
-        if let Err(e) = frame(&window) {
-            let _ = messagebox::show_simple_message_box(messagebox::MESSAGEBOX_ERROR, "Error", &e, Option::Some(&window)); 
+        if let Err(e) = frame() {
+            let _ = messagebox::show_simple_message_box(messagebox::MESSAGEBOX_ERROR, "Error", e.description(), Option::Some(&window)); 
             should_quit = true;
         }
         
@@ -40,6 +47,6 @@ fn _main() -> Result<(), String> {
     Ok(())
 }
 
-fn frame(window: &Window) -> Result<(), String> {
+fn frame() -> Result<(), ScapeError> {
     Err("no game yet".into())
 }

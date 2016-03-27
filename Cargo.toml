@@ -6,4 +6,5 @@ build = "build.rs"
 
 [dependencies]
 sdl2 = "0.16"
+sdl2_ttf = "0.16"
 
