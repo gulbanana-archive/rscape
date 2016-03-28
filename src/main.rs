@@ -15,11 +15,9 @@ use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 use sdl2::rect::Rect;
 use sdl2_ttf::Font;
+use sdl2::event::WindowEventId;
 
 use errors::ScapeError;
-
-static SCREEN_WIDTH : u32 = 1280;
-static SCREEN_HEIGHT : u32 = 720;
 
 fn main() {
     if let Err(e) = _main() {
@@ -28,11 +26,14 @@ fn main() {
 }
 
 fn _main() -> Result<(), ScapeError> {
+    let mut screen_width : u32 = 1280;
+    let mut screen_height : u32 = 720;
+    
     let sdl_ctx = try!(sdl2::init());
     let video_ctx = try!(sdl_ctx.video());
     let ttf_ctx = try!(sdl2_ttf::init().map_err(|e| e.to_string())); //because the actual error type is private  
     
-    let window = try!(video_ctx.window("Scape", SCREEN_WIDTH, SCREEN_HEIGHT).position_centered().opengl().build());
+    let window = try!(video_ctx.window("Scape", screen_width, screen_height).position_centered().resizable().opengl().build());
     let mut events = try!(sdl_ctx.event_pump());
     let mut renderer = try!(window.renderer().build());
     
@@ -42,9 +43,15 @@ fn _main() -> Result<(), ScapeError> {
     let mut i = 0;
     while !should_quit {
         for event in events.poll_iter() {
-            should_quit = match event {
-                Event::Quit {..} => true,
-                _ => false
+            match event {
+                Event::Quit { .. } => {
+                    should_quit = true;
+                },
+                Event::Window { win_event_id: WindowEventId::Resized, data1, data2, .. } => {
+                    screen_width = data1 as u32;
+                    screen_height = data2 as u32;
+                },
+                _ => ()
             };
         }
         
@@ -54,11 +61,17 @@ fn _main() -> Result<(), ScapeError> {
         
         //draw a number to a texture
         let mut dot = try!(render_text(&mut renderer, &arial, i));
-        let TextureQuery { width, height, .. } = dot.query();
+        let TextureQuery { width: glyph_width, height: glyph_height, .. } = dot.query();
         
-        for x in 0..SCREEN_WIDTH/width {
-            for y in 0..SCREEN_HEIGHT/height {
-                let target = Rect::new((x * width) as i32, (y * height) as i32, width, height);
+        if (screen_width/glyph_width) * glyph_width < screen_width || (screen_height/glyph_height) * glyph_height < screen_height {
+            screen_width = (screen_width/glyph_width) * glyph_width;
+            screen_height = (screen_height/glyph_height) * glyph_height;
+            try!(renderer.window_mut().unwrap().set_size(screen_width, screen_height));
+        }
+        
+        for x in 0..screen_width/glyph_width {
+            for y in 0..screen_height/glyph_height {
+                let target = Rect::new((x * glyph_width) as i32, (y * glyph_height) as i32, glyph_width, glyph_height);
                 renderer.copy(&mut dot, None, Some(target));
             }
         }
