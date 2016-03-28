@@ -11,6 +11,7 @@ use sdl2::messagebox;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
 use sdl2::render::Renderer;
+use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 use sdl2::rect::Rect;
 use sdl2_ttf::Font;
@@ -35,7 +36,7 @@ fn _main() -> Result<(), ScapeError> {
     let mut events = try!(sdl_ctx.event_pump());
     let mut renderer = try!(window.renderer().build());
     
-    let arial128 = try!(ttf_ctx.load_font(Path::new("C:\\Windows\\Fonts\\arial.ttf"), 128));
+    let arial = try!(ttf_ctx.load_font(Path::new("C:\\Windows\\Fonts\\arial.ttf"), 64));
     
     let mut should_quit = false;
     let mut i = 0;
@@ -47,33 +48,35 @@ fn _main() -> Result<(), ScapeError> {
             };
         }
         
-        if let Err(e) = frame(&mut renderer, &arial128, i) {
-            let _ = messagebox::show_simple_message_box(messagebox::MESSAGEBOX_ERROR, "Error", e.description(), None); //should be Some but there's a library bug
-            should_quit = true;
+        //prep the screen
+        renderer.set_draw_color(Color::RGBA(195, 217, 255, 255));
+        renderer.clear();
+        
+        //draw a number to a texture
+        let mut dot = try!(render_text(&mut renderer, &arial, i));
+        let TextureQuery { width, height, .. } = dot.query();
+        
+        for x in 0..SCREEN_WIDTH/width {
+            for y in 0..SCREEN_HEIGHT/height {
+                let target = Rect::new((x * width) as i32, (y * height) as i32, width, height);
+                renderer.copy(&mut dot, None, Some(target));
+            }
         }
-        i += 1;
-
+        renderer.present();            
         
         thread::sleep(Duration::from_millis(10));
+        i += 1;
+        if i > 9 {
+            i = 0;
+        }
     }
     
     Ok(())
 }
 
-fn frame(renderer: &mut Renderer, font: &Font, i: i32) -> Result<(), ScapeError> {
+fn render_text(renderer: &mut Renderer, font: &Font, i: i32) -> Result<Texture, ScapeError> {
     let surface = try!(font.render(format!("{}", i).as_str()).blended(Color::RGBA(255, 0, 0, 255)).map_err(|e| e.to_string())); //more private error types :(
-    let mut texture = try!(renderer.create_texture_from_surface(&surface));
+    let texture = try!(renderer.create_texture_from_surface(&surface));
     
-    let TextureQuery { width, height, .. } = texture.query();
-    let target = Rect::new((SCREEN_WIDTH / 2 - width / 2) as i32, 
-                           (SCREEN_HEIGHT / 2 - height / 2) as i32,
-                           width, 
-                           height);
-
-    renderer.set_draw_color(Color::RGBA(195, 217, 255, 255));
-    renderer.clear();
-    renderer.copy(&mut texture, None, Some(target));
-    renderer.present();
-    
-    Ok(())
+    Ok(texture)
 }
